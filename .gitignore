@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tsbuildinfo
+build/
+.env
+.env.*
+!.env.example
+uploads/*
+!uploads/.gitkeep
+*.log
+.DS_Store

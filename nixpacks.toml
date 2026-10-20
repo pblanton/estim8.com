@@ -1,0 +1,21 @@
+# Nixpacks build config for the npm-workspaces monorepo (shared + server + client).
+# Produces one Node process: Express serves /api, Socket.IO, and the built SPA.
+
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+
+[phases.install]
+# Dev dependencies (typescript, vite) are required to build.
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = [
+  "npm run build",
+  # tsc doesn't emit .sql files; the server reads them from dist at startup.
+  "mkdir -p server/dist/db/migrations && cp server/src/db/migrations/*.sql server/dist/db/migrations/",
+  # Express serves the SPA from server/dist/public.
+  "rm -rf server/dist/public && cp -r client/dist server/dist/public",
+]
+
+[start]
+cmd = "node server/dist/index.js"
