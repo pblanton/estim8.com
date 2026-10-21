@@ -14,8 +14,12 @@ async function main() {
   initSockets(httpServer);
   startPurgeScheduler();
 
-  httpServer.listen(env.port, () => {
-    console.log(`estim8 server listening on port ${env.port}`);
+  // Bind explicitly to 0.0.0.0: leaving the host unspecified defaults to the
+  // IPv6 wildcard (::), which doesn't reliably accept IPv4 connections from a
+  // sibling container (e.g. a reverse proxy) depending on the container's
+  // network stack — a common cause of "logs say listening, proxy can't connect."
+  httpServer.listen(env.port, '0.0.0.0', () => {
+    console.log(`estim8 server listening on 0.0.0.0:${env.port}`);
   });
 }
 
