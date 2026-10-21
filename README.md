@@ -1,8 +1,8 @@
 # estim8.com
 
-Distributed planning poker, written with assistance from Claude.
+Distributed Planning Poker®, written with assistance from Claude.
 
-A felt-table-style planning poker app: facilitators create accounts, set up sessions with
+A felt-table-style Planning Poker® app: facilitators create accounts, set up sessions with
 discussion topics (and reference documents), invite up to 10 players per session via email or
 a shared link, and run live estimation rounds with real-time reveal, consensus tracking, and a
 saved `Results.md` per topic. Sessions are not meant as permanent storage — they auto-delete 7
@@ -149,3 +149,12 @@ The Docker Compose / nginx / certbot files (`docker-compose.yml`, `server/Docker
 
 Favicons and logos in `repo_files/` are the source brand assets; the in-use copies live under
 `client/public/` (favicons) and `client/src/assets/` (logos referenced by the app).
+
+## Trademarks
+
+Planning Poker® is a registered trademark of Mike Cohn, and Mountain Goat Software, LLC. Credit for this
+estimation technique belongs with them (https://www.mountaingoatsoftware.com/). estim8 is an
+independent project and is not affiliated with or endorsed by Mountain Goat Software. The
+built-in decks use the standard Fibonacci sequence, a simple decimal sequence, or user-defined sequencing;
+they do not use Mountain Goat Software's copyrighted, modified fibonacci sequence of values, but a user 
+could define their own sequence that does. Please don't sue me Mike.

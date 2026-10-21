@@ -17,10 +17,10 @@ export async function sendVerificationEmail(email: string, rawToken: string, cod
 
 export async function sendInviteEmail(email: string, sessionName: string, joinCode: string) {
   const link = `${env.clientOrigin}/join/${joinCode}`;
-  const subject = `You're invited to a planning poker session: ${sessionName}`;
-  const text = `You've been invited to join the planning poker session "${sessionName}".\n\nJoin here: ${link}\n\n${RETENTION_NOTICE}`;
+  const subject = `You're invited to a Planning Poker® session: ${sessionName}`;
+  const text = `You've been invited to join the Planning Poker® session "${sessionName}".\n\nJoin here: ${link}\n\n${RETENTION_NOTICE}`;
   const html = `
-    <p>You've been invited to join the planning poker session <strong>${sessionName}</strong>.</p>
+    <p>You've been invited to join the Planning Poker® session <strong>${sessionName}</strong>.</p>
     <p><a href="${link}">Click here to join</a></p>
     <p style="color:#666;font-size:0.9em;">${RETENTION_NOTICE}</p>
   `;

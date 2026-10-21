@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/estim8-header-logo.png';
+import { MOUNTAIN_GOAT_URL, PlanningPokerTerm } from '../../components/PlanningPokerTerm';
 
 export function LandingPage() {
   const { user, loading } = useAuth();
@@ -39,7 +40,7 @@ export function LandingPage() {
       <header className="landing-hero">
         <h1>Estimate together, without anchoring on the loudest voice.</h1>
         <p className="subtitle">
-          estim8 is a distributed planning poker table for remote and hybrid teams. Everyone picks a card in
+          estim8 is a distributed <PlanningPokerTerm /> table for remote and hybrid teams. Everyone picks a card in
           private, cards flip at the same time, and the conversation starts from the full spread of opinions —
           not just whoever spoke first.
         </p>
@@ -59,7 +60,7 @@ export function LandingPage() {
           <div className="card">
             <strong>Simultaneous reveal fixes it.</strong>
             <p>
-              Planning poker has every estimator commit to a number privately, then reveals all cards at once. The
+              <PlanningPokerTerm /> has every estimator commit to a number privately, then reveals all cards at once. The
               spread of answers — not a single confident guess — becomes the start of the discussion.
             </p>
           </div>
@@ -121,11 +122,12 @@ export function LandingPage() {
 
       <section className="landing-section">
         <h2>Your data doesn't live here forever</h2>
-        <p style={{ maxWidth: 700 }}>
-          estim8 is a working table, not a filing cabinet. A session and everything uploaded to it — documents,
+        <p>
+          Estim8 is a working table, not a filing cabinet. A session and everything uploaded to it — documents,
           votes, notes, results — is automatically deleted 7 days after you mark it complete (and abandoned,
           never-completed sessions are cleaned up too). Export a ZIP of everything whenever you like, or purge a
-          session immediately yourself. Come in, estimate, take what you learned with you.
+          session immediately yourself. Come on in, estimate your project tasks, and take what you learned with
+          you. All for free.
         </p>
       </section>
 
@@ -133,6 +135,25 @@ export function LandingPage() {
         <Link to="/register" className="btn btn-primary">
           Create your facilitator account
         </Link>
+      </section>
+
+      <section className="landing-section landing-credit">
+        <div className="landing-credit-tile">
+          <h2>
+            <PlanningPokerTerm />: credit where it's due
+          </h2>
+          <p>
+            <PlanningPokerTerm /> is a registered trademark of Mike Cohn, and Mountain Goat Software, LLC. Their work
+            on this estimation technique has helped countless teams estimate better together, and estim8 exists because
+            it's such a good way to do it. estim8 is an independent project and is not affiliated with or
+            endorsed by Mountain Goat Software. Please don't sue me Mike.
+          </p>
+          <p className="landing-credit-links">
+            <a href={MOUNTAIN_GOAT_URL} target="_blank" rel="noopener noreferrer">
+              Visit Mountain Goat Software
+            </a>
+          </p>
+        </div>
       </section>
     </div>
   );
