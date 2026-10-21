@@ -2,11 +2,12 @@
 # Produces one Node process: Express serves /api, Socket.IO, and the built SPA.
 
 [variables]
-# Vite 8 (Rolldown-based) and its toolchain (@vitejs/plugin-react, oxlint) require
-# Node >=22.12.0. Nixpacks' "22" resolved to 22.11.0, just under that floor, which
-# breaks npm's resolution of Rolldown's platform-specific native binding entirely
-# ("Cannot find native binding" from every fallback). Pin to 24 to clear it safely.
-NIXPACKS_NODE_VERSION = "24"
+# This Nixpacks release's pinned nixpkgs snapshot only resolves nodejs_22 to
+# 22.11.0 and doesn't have a nodejs_24 attribute at all. Vite 8 (Rolldown-based)
+# needed Node >=22.12.0 and hit a native-binding resolution bug on 22.11.0, which
+# is why the client is pinned to Vite 6 (client/package.json) instead of chasing
+# an exact Node patch version here — Vite 6 is happy with plain >=22.0.0.
+NIXPACKS_NODE_VERSION = "22"
 
 [phases.install]
 # Dev dependencies (typescript, vite) are required to build.
