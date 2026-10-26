@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { SessionRoomProvider, useSessionRoom, PARTICIPANT_TOKEN_KEY_PREFIX } from '../../context/SessionRoomContext';
 import { FeltTable } from '../../components/table/FeltTable';
@@ -7,6 +7,8 @@ import { CardPickerHand } from '../../components/deck/CardPickerHand';
 import { SlideshowViewer } from '../../components/slideshow/SlideshowViewer';
 import { ResultsPanel } from '../../components/results/ResultsPanel';
 import { DuckConfettiCelebration } from '../../components/celebration/DuckConfettiCelebration';
+import { DISPLAY_NAME_KEY_PREFIX } from '../join/JoinLanding';
+import { useAuth } from '../../context/AuthContext';
 import { fileApi } from '../../api/files';
 import { sessionApi } from '../../api/sessions';
 
@@ -244,7 +246,19 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
 
 export function SessionRoomPage() {
   const { joinCode } = useParams<{ joinCode: string }>();
+  const { user, loading } = useAuth();
   if (!joinCode) return null;
+  if (loading) return <div className="page-loading">Loading…</div>;
+
+  // Someone who opens /play/<code> directly (e.g. a URL copied from the facilitator's address bar) has
+  // no name or participant token yet. Send them through the join page so they pick a name instead of
+  // landing at the table as "Guest".
+  const hasIdentity =
+    user ||
+    sessionStorage.getItem(`${DISPLAY_NAME_KEY_PREFIX}${joinCode}`) ||
+    sessionStorage.getItem(`${PARTICIPANT_TOKEN_KEY_PREFIX}${joinCode}`);
+  if (!hasIdentity) return <Navigate to={`/join/${joinCode}`} replace />;
+
   return (
     <SessionRoomProvider joinCode={joinCode}>
       <SessionRoomInner joinCode={joinCode} />
