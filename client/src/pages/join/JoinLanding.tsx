@@ -7,7 +7,8 @@ import logo from '../../assets/estim8-header-logo.png';
 export const DISPLAY_NAME_KEY_PREFIX = 'estim8_display_name_';
 
 export function JoinLandingPage() {
-  const { joinCode } = useParams<{ joinCode: string }>();
+  const { joinCode: rawJoinCode } = useParams<{ joinCode: string }>();
+  const joinCode = rawJoinCode?.toUpperCase();
   const navigate = useNavigate();
   const [sessionName, setSessionName] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);

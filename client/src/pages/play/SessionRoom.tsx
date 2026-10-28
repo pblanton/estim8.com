@@ -6,6 +6,7 @@ import { FeltTable } from '../../components/table/FeltTable';
 import { CardPickerHand } from '../../components/deck/CardPickerHand';
 import { SlideshowViewer } from '../../components/slideshow/SlideshowViewer';
 import { ResultsPanel } from '../../components/results/ResultsPanel';
+import { AddTopicForm } from '../../components/room/AddTopicForm';
 import { DuckConfettiCelebration } from '../../components/celebration/DuckConfettiCelebration';
 import { DISPLAY_NAME_KEY_PREFIX } from '../join/JoinLanding';
 import { useAuth } from '../../context/AuthContext';
@@ -30,8 +31,17 @@ function JoinErrorScreen({ reason }: { reason: string }) {
 }
 
 function SessionRoomInner({ joinCode }: { joinCode: string }) {
-  const { state, pickCard, clearCard, requestReveal, navigateSlideshow, activateTopic, completeTopic, joinAsPlayer } =
-    useSessionRoom();
+  const {
+    state,
+    pickCard,
+    clearCard,
+    requestReveal,
+    navigateSlideshow,
+    activateTopic,
+    completeTopic,
+    addTopic,
+    joinAsPlayer,
+  } = useSessionRoom();
   const navigate = useNavigate();
   const [showResults, setShowResults] = useState(false);
   const [revealMessage, setRevealMessage] = useState<string | null>(null);
@@ -65,6 +75,7 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
   const revealedValues = revealedForActiveTopic
     ? Object.fromEntries(state.revealedVotes!.map((v) => [v.participantId, v.value]))
     : undefined;
+  const isQuickHand = state.session.isQuickHand;
   const celebrate = revealedForActiveTopic && state.consensus?.agreementPct === 100 && state.revealedVotes!.length >= 2;
 
   async function onReveal() {
@@ -84,6 +95,13 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
     if (!activeTopic) return;
     setShowResults(false);
     completeTopic(activeTopic.id);
+  }
+
+  // Quick Hand: put a fresh topic on the table straight away, without leaving the room.
+  function onRunAnotherHand() {
+    if (!state.session) return;
+    setShowResults(false);
+    addTopic(`${state.session.name} (hand ${state.topics.length + 1})`, true);
   }
 
   async function onPurgeNow() {
@@ -112,6 +130,17 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
           Thanks everyone! This session's files will be automatically deleted on{' '}
           {new Date(state.sessionCompleted.purgeAt).toLocaleDateString()}.
         </p>
+        {state.isFacilitatorOwner && isQuickHand && (
+          <button className="btn btn-primary" onClick={onRunAnotherHand}>
+            Run another hand
+          </button>
+        )}
+        {state.isFacilitatorOwner && !isQuickHand && (
+          <div className="complete-add-topic">
+            <p>Forgot something? Add a topic and the session picks right back up for everyone.</p>
+            <AddTopicForm onAdd={(name) => addTopic(name)} placeholder="Topic name" buttonLabel="Add topic & resume" />
+          </div>
+        )}
         {state.isFacilitatorOwner && (
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <a className="btn btn-primary" href={sessionApi.exportUrl(state.session.id)}>
@@ -127,60 +156,82 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
   }
 
   return (
-    <div className="play-layout">
-      <div className="play-left">
-        <div className="play-topbar">
-          <span className="topic-name">{activeTopic ? activeTopic.name : 'No topic selected'}</span>
+    <div className={`play-layout${isQuickHand ? ' quick-hand' : ''}`}>
+      {isQuickHand && (
+        <div className="quick-hand-header">
+          <span className="topic-name">{activeTopic ? activeTopic.name : state.session.name}</span>
+          {state.isFacilitatorOwner && (
+            <span className="quick-hand-share">
+              <code>
+                {window.location.origin}/join/{state.session.joinCode}
+              </code>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/join/${state.session!.joinCode}`)}
+              >
+                Copy link
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+      {!isQuickHand && (
+        <div className="play-left">
+          <div className="play-topbar">
+            <span className="topic-name">{activeTopic ? activeTopic.name : 'No topic selected'}</span>
+          </div>
+
+          {state.isFacilitatorOwner && (
+            <div style={{ padding: '0.75rem 1rem', background: '#222', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {state.topics.map((t) => (
+                <button
+                  key={t.id}
+                  className="btn btn-secondary btn-small"
+                  onClick={() => activateTopic(t.id)}
+                  disabled={t.id === activeTopic?.id}
+                >
+                  {t.name} ({t.status})
+                </button>
+              ))}
+              <AddTopicForm onAdd={(name) => addTopic(name)} />
+            </div>
+          )}
+
+          {activeTopic?.description && (
+            <div style={{ padding: '0.75rem 1rem', color: '#ccc', fontSize: '0.9rem' }}>{activeTopic.description}</div>
+          )}
+
+          {activeTopic && (
+            <SlideshowViewer
+              topicId={activeTopic.id}
+              files={filesData?.files ?? []}
+              slideIndex={state.slideIndex}
+              participantToken={participantToken}
+            />
+          )}
+
+          {activeTopic && state.isFacilitatorOwner && (
+            <div className="slideshow-controls">
+              <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'start')}>
+                ⏮ Start
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'back')}>
+                ◀ Back
+              </button>
+              <span className="slideshow-counter">
+                {state.totalSlides > 0 ? `${state.slideIndex + 1} / ${state.totalSlides}` : '—'}
+              </span>
+              <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'next')}>
+                Next ▶
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'end')}>
+                End ⏭
+              </button>
+            </div>
+          )}
         </div>
 
-        {state.isFacilitatorOwner && (
-          <div style={{ padding: '0.75rem 1rem', background: '#222', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {state.topics.map((t) => (
-              <button
-                key={t.id}
-                className="btn btn-secondary btn-small"
-                onClick={() => activateTopic(t.id)}
-                disabled={t.id === activeTopic?.id}
-              >
-                {t.name} ({t.status})
-              </button>
-            ))}
-          </div>
-        )}
-
-        {activeTopic?.description && (
-          <div style={{ padding: '0.75rem 1rem', color: '#ccc', fontSize: '0.9rem' }}>{activeTopic.description}</div>
-        )}
-
-        {activeTopic && (
-          <SlideshowViewer
-            topicId={activeTopic.id}
-            files={filesData?.files ?? []}
-            slideIndex={state.slideIndex}
-            participantToken={participantToken}
-          />
-        )}
-
-        {activeTopic && state.isFacilitatorOwner && (
-          <div className="slideshow-controls">
-            <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'start')}>
-              ⏮ Start
-            </button>
-            <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'back')}>
-              ◀ Back
-            </button>
-            <span className="slideshow-counter">
-              {state.totalSlides > 0 ? `${state.slideIndex + 1} / ${state.totalSlides}` : '—'}
-            </span>
-            <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'next')}>
-              Next ▶
-            </button>
-            <button className="btn btn-secondary btn-small" onClick={() => navigateSlideshow(activeTopic.id, 'end')}>
-              End ⏭
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="play-right">
         {activeTopic && (
@@ -208,9 +259,20 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
               <button className="btn btn-secondary btn-small" onClick={() => setShowResults(true)}>
                 Results
               </button>
-              <button className="btn btn-primary btn-small" onClick={onNextTopic}>
-                Next topic →
-              </button>
+              {isQuickHand ? (
+                <>
+                  <button className="btn btn-primary btn-small" onClick={onRunAnotherHand}>
+                    Run another hand
+                  </button>
+                  <button className="btn btn-secondary btn-small" onClick={onNextTopic}>
+                    Done
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-primary btn-small" onClick={onNextTopic}>
+                  Next topic →
+                </button>
+              )}
             </>
           )}
         </div>
@@ -245,9 +307,11 @@ function SessionRoomInner({ joinCode }: { joinCode: string }) {
 }
 
 export function SessionRoomPage() {
-  const { joinCode } = useParams<{ joinCode: string }>();
+  const { joinCode: rawJoinCode } = useParams<{ joinCode: string }>();
   const { user, loading } = useAuth();
-  if (!joinCode) return null;
+  if (!rawJoinCode) return null;
+  // Join codes are case-insensitive; use one canonical form for storage keys and the socket join.
+  const joinCode = rawJoinCode.toUpperCase();
   if (loading) return <div className="page-loading">Loading…</div>;
 
   // Someone who opens /play/<code> directly (e.g. a URL copied from the facilitator's address bar) has

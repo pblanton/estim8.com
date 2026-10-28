@@ -1,0 +1,3 @@
+ALTER TABLE poker_sessions ADD COLUMN is_quick_hand BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE poker_sessions MODIFY join_code VARCHAR(30) NOT NULL;

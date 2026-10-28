@@ -22,12 +22,12 @@ export function registerJoinHandler(io: AppServer, socket: AppSocket) {
         ack({ ok: false, reason: 'session_not_found' });
         return;
       }
-      if (session.status === 'completed') {
+      const isOwner = Boolean(socket.data.facilitatorUser && socket.data.facilitatorUser.id === session.facilitator_id);
+      // Only the facilitator may enter a finished session, so they can still add a forgotten topic.
+      if (session.status === 'completed' && !isOwner) {
         ack({ ok: false, reason: 'session_completed' });
         return;
       }
-
-      const isOwner = Boolean(socket.data.facilitatorUser && socket.data.facilitatorUser.id === session.facilitator_id);
 
       let participant = null as Awaited<ReturnType<typeof participantRepo.findById>>;
       let issuedToken: string | undefined;
@@ -90,6 +90,8 @@ export function registerJoinHandler(io: AppServer, socket: AppSocket) {
           deckId: session.deck_id,
           deckLabels: deck?.labels ?? [],
           activeTopicId: session.active_topic_id,
+          isQuickHand: Boolean(session.is_quick_hand),
+          purgeAt: session.purge_at ? session.purge_at.toISOString() : null,
         },
         topics: topics.map((t) => ({
           id: t.id,

@@ -8,6 +8,7 @@ export const ClientEvents = {
   SlideshowNavigate: 'slideshow:navigate',
   TopicActivate: 'topic:activate',
   TopicComplete: 'topic:complete',
+  TopicAdd: 'topic:add',
 } as const;
 
 export const ServerEvents = {
@@ -20,6 +21,8 @@ export const ServerEvents = {
   SlideshowState: 'slideshow:state',
   ResultsSaved: 'results:saved',
   SessionCompleted: 'session:completed',
+  SessionReopened: 'session:reopened',
+  TopicsUpdated: 'topics:updated',
 } as const;
 
 export type ParticipantRole = 'player' | 'facilitator';
@@ -71,9 +74,40 @@ export interface SessionStatePayload {
     deckId: string;
     deckLabels: string[];
     activeTopicId: string | null;
+    /** One-round, one-topic session with no supporting material: the UI maximizes the table. */
+    isQuickHand: boolean;
+    /** Set once the session is completed; when its data will be deleted. */
+    purgeAt: string | null;
   };
-  topics: Array<{ id: string; name: string; description: string | null; position: number; status: string }>;
+  topics: TopicSummaryPayload[];
   participants: ParticipantSummary[];
+}
+
+export interface TopicSummaryPayload {
+  id: string;
+  name: string;
+  description: string | null;
+  position: number;
+  status: string;
+}
+
+export interface TopicsUpdatedPayload {
+  topics: TopicSummaryPayload[];
+}
+
+export interface TopicAddPayload {
+  name: string;
+  /**
+   * Make the new topic the active one right away, completing the current topic first.
+   * Without it the topic is queued behind the current ones (it is still activated immediately
+   * if the session is completed or has no active topic).
+   */
+  activateNow?: boolean;
+}
+
+export interface TopicAddAck {
+  ok: boolean;
+  reason?: 'forbidden' | 'invalid_name';
 }
 
 export interface CardPickPayload {

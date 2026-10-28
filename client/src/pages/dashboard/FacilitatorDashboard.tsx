@@ -22,9 +22,14 @@ export function FacilitatorDashboard() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Your sessions</h1>
-          <Link to="/sessions/new" className="btn btn-primary">
-            + New session
-          </Link>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <Link to="/sessions/quick-hand" className="btn btn-secondary">
+              ⚡ Quick Hand
+            </Link>
+            <Link to="/sessions/new" className="btn btn-primary">
+              + New session
+            </Link>
+          </div>
         </div>
 
         {isLoading && <p>Loading…</p>}

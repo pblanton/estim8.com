@@ -1,6 +1,7 @@
 import { ServerEvents } from '@estim8/shared';
 import * as participantRepo from '../repositories/participantRepo.js';
 import * as voteRepo from '../repositories/voteRepo.js';
+import * as topicRepo from '../repositories/topicRepo.js';
 import { getConnectedParticipantIds } from './presence.js';
 import type { AppServer } from './types.js';
 
@@ -23,4 +24,13 @@ export async function broadcastParticipantsUpdate(io: AppServer, pokerSessionId:
   }));
 
   io.to(sessionRoom(pokerSessionId)).emit(ServerEvents.ParticipantsUpdate, { participants: summary });
+}
+
+export function toTopicSummary(t: topicRepo.TopicRow) {
+  return { id: t.id, name: t.name, description: t.description, position: t.position, status: t.status };
+}
+
+export async function broadcastTopicsUpdate(io: AppServer, pokerSessionId: string): Promise<void> {
+  const topics = await topicRepo.listBySession(pokerSessionId);
+  io.to(sessionRoom(pokerSessionId)).emit(ServerEvents.TopicsUpdated, { topics: topics.map(toTopicSummary) });
 }

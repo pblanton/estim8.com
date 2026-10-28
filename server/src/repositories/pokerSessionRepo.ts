@@ -14,6 +14,7 @@ export interface PokerSessionRow {
   join_code: string;
   deck_id: string;
   status: PokerSessionStatus;
+  is_quick_hand: number | boolean;
   active_topic_id: string | null;
   completed_at: Date | null;
   purge_at: Date | null;
@@ -22,20 +23,33 @@ export interface PokerSessionRow {
   updated_at: Date;
 }
 
-export async function createSession(facilitatorId: string, name: string, deckId: string): Promise<PokerSessionRow> {
-  const id = randomUUID();
-  let joinCode = generateJoinCode();
+export async function generateUniqueJoinCode(): Promise<string> {
   // Extremely unlikely collision, but guard anyway.
+  let joinCode = generateJoinCode();
   for (let attempt = 0; attempt < 5; attempt++) {
-    const existing = await findByJoinCode(joinCode);
-    if (!existing) break;
+    if (!(await findByJoinCode(joinCode))) break;
     joinCode = generateJoinCode();
   }
+  return joinCode;
+}
+
+export async function createSession(
+  facilitatorId: string,
+  name: string,
+  deckId: string,
+  joinCode: string,
+  isQuickHand = false,
+): Promise<PokerSessionRow> {
+  const id = randomUUID();
   await pool.query(
-    "INSERT INTO poker_sessions (id, facilitator_id, name, join_code, deck_id, status) VALUES (?, ?, ?, ?, ?, 'active')",
-    [id, facilitatorId, name, joinCode, deckId],
+    "INSERT INTO poker_sessions (id, facilitator_id, name, join_code, deck_id, status, is_quick_hand) VALUES (?, ?, ?, ?, ?, 'active', ?)",
+    [id, facilitatorId, name, joinCode, deckId, isQuickHand],
   );
   return (await findById(id))!;
+}
+
+export async function renameJoinCode(id: string, joinCode: string): Promise<void> {
+  await pool.query('UPDATE poker_sessions SET join_code = ? WHERE id = ?', [joinCode, id]);
 }
 
 export async function findById(id: string): Promise<PokerSessionRow | null> {
@@ -88,6 +102,14 @@ export async function markCompleted(id: string): Promise<PokerSessionRow> {
      SET status = 'completed', completed_at = NOW(), purge_at = DATE_ADD(NOW(), INTERVAL ? DAY)
      WHERE id = ?`,
     [SESSION_PURGE_DAYS_AFTER_COMPLETION, id],
+  );
+  return (await findById(id))!;
+}
+
+export async function markReopened(id: string): Promise<PokerSessionRow> {
+  await pool.query(
+    "UPDATE poker_sessions SET status = 'active', completed_at = NULL, purge_at = NULL, last_activity_at = NOW() WHERE id = ?",
+    [id],
   );
   return (await findById(id))!;
 }

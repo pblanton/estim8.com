@@ -19,6 +19,8 @@ import {
   type SessionStatePayload,
   type SlideshowAction,
   type SlideshowStatePayload,
+  type TopicAddAck,
+  type TopicsUpdatedPayload,
   type VoteSummary,
 } from '@estim8/shared';
 import { DISPLAY_NAME_KEY_PREFIX } from '../pages/join/JoinLanding';
@@ -57,7 +59,9 @@ type Action =
   | { type: 'TOPIC_ACTIVATED'; topicId: string; topic: TopicSummary; slideIndex: number }
   | { type: 'SLIDESHOW_STATE'; payload: SlideshowStatePayload }
   | { type: 'CARDS_REVEALED'; payload: CardsRevealedPayload }
-  | { type: 'SESSION_COMPLETED'; purgeAt: string };
+  | { type: 'SESSION_COMPLETED'; purgeAt: string }
+  | { type: 'SESSION_REOPENED' }
+  | { type: 'TOPICS_UPDATED'; topics: TopicSummary[] };
 
 function reducer(state: RoomState, action: Action): RoomState {
   switch (action.type) {
@@ -72,6 +76,11 @@ function reducer(state: RoomState, action: Action): RoomState {
         participants: action.payload.participants,
         myParticipantId: action.myParticipantId,
         isFacilitatorOwner: action.isFacilitatorOwner,
+        // The facilitator can enter a finished session (to add a forgotten topic).
+        sessionCompleted:
+          action.payload.session.status === 'completed' && action.payload.session.purgeAt
+            ? { purgeAt: action.payload.session.purgeAt }
+            : undefined,
       };
     case 'PARTICIPANTS_UPDATE':
       return { ...state, participants: action.participants };
@@ -96,6 +105,14 @@ function reducer(state: RoomState, action: Action): RoomState {
       };
     case 'SESSION_COMPLETED':
       return { ...state, sessionCompleted: { purgeAt: action.purgeAt } };
+    case 'SESSION_REOPENED':
+      return {
+        ...state,
+        sessionCompleted: undefined,
+        session: state.session ? { ...state.session, status: 'active', purgeAt: null } : state.session,
+      };
+    case 'TOPICS_UPDATED':
+      return { ...state, topics: action.topics };
     default:
       return state;
   }
@@ -118,6 +135,8 @@ interface SessionRoomContextValue {
   navigateSlideshow: (topicId: string, action: SlideshowAction) => void;
   activateTopic: (topicId: string) => void;
   completeTopic: (topicId: string) => void;
+  /** Facilitator only. Queues a topic (or puts it on the table now); reopens a completed session. */
+  addTopic: (name: string, activateNow?: boolean) => Promise<TopicAddAck>;
   joinAsPlayer: () => void;
 }
 
@@ -185,6 +204,10 @@ export function SessionRoomProvider({ joinCode, children }: { joinCode: string; 
     socket.on(ServerEvents.SessionCompleted, (payload: { purgeAt: string }) =>
       dispatch({ type: 'SESSION_COMPLETED', purgeAt: payload.purgeAt }),
     );
+    socket.on(ServerEvents.SessionReopened, () => dispatch({ type: 'SESSION_REOPENED' }));
+    socket.on(ServerEvents.TopicsUpdated, (payload: TopicsUpdatedPayload) =>
+      dispatch({ type: 'TOPICS_UPDATED', topics: payload.topics }),
+    );
 
     return () => {
       socket.close();
@@ -218,13 +241,19 @@ export function SessionRoomProvider({ joinCode, children }: { joinCode: string; 
     socketRef.current?.emit(ClientEvents.TopicComplete, { topicId });
   }, []);
 
+  const addTopic = useCallback((name: string, activateNow = false) => {
+    return new Promise<TopicAddAck>((resolve) => {
+      socketRef.current?.emit(ClientEvents.TopicAdd, { name, activateNow }, resolve);
+    });
+  }, []);
+
   const joinAsPlayer = useCallback(() => {
     if (socketRef.current) doJoin(socketRef.current, { joinAsPlayer: true });
   }, [doJoin]);
 
   return (
     <SessionRoomContext.Provider
-      value={{ state, pickCard, clearCard, requestReveal, navigateSlideshow, activateTopic, completeTopic, joinAsPlayer }}
+      value={{ state, pickCard, clearCard, requestReveal, navigateSlideshow, activateTopic, completeTopic, addTopic, joinAsPlayer }}
     >
       {children}
     </SessionRoomContext.Provider>

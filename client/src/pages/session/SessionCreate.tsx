@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { validateJoinCode } from '@estim8/shared';
 import { useQuery } from '@tanstack/react-query';
 import { AppHeader } from '../../components/layout/AppHeader';
+import { JoinCodeField } from '../../components/forms/JoinCodeField';
 import { deckApi } from '../../api/decks';
 import { sessionApi } from '../../api/sessions';
 import { ApiError } from '../../api/client';
@@ -16,6 +18,7 @@ export function SessionCreatePage() {
   const [deckId, setDeckId] = useState('');
   const [customName, setCustomName] = useState('My custom deck');
   const [customLabels, setCustomLabels] = useState('P1, P2, P3, P4, P5');
+  const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -28,6 +31,7 @@ export function SessionCreatePage() {
       setError('Session name is required.');
       return;
     }
+    if (joinCode.trim() && validateJoinCode(joinCode)) return;
     setBusy(true);
     try {
       let finalDeckId = deckId;
@@ -49,7 +53,7 @@ export function SessionCreatePage() {
         setBusy(false);
         return;
       }
-      const { session } = await sessionApi.create(name.trim(), finalDeckId);
+      const { session } = await sessionApi.create(name.trim(), finalDeckId, joinCode.trim());
       navigate(`/sessions/${session.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
@@ -63,6 +67,9 @@ export function SessionCreatePage() {
       <AppHeader />
       <main className="app-main">
         <h1>New session</h1>
+        <p>
+          Just need one quick estimate? <Link to="/sessions/quick-hand">Start a Quick Hand</Link> instead.
+        </p>
         <form className="form-stack" onSubmit={onSubmit} style={{ maxWidth: 480 }}>
           <div className="form-field">
             <label htmlFor="name">Session name</label>
@@ -96,6 +103,8 @@ export function SessionCreatePage() {
               </div>
             </>
           )}
+
+          <JoinCodeField value={joinCode} onChange={setJoinCode} warnAboutDocuments />
 
           {error && <div className="form-error">{error}</div>}
           <button className="btn btn-primary" type="submit" disabled={busy}>

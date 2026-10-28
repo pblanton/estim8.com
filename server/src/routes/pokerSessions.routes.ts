@@ -9,11 +9,14 @@ import { sendInvites } from '../services/inviteService.js';
 import { streamSessionExport } from '../services/exportService.js';
 import { purgeSession } from '../services/purgeService.js';
 import { completeSession } from '../services/sessionLifecycleService.js';
+import { createSession, DEFAULT_DECK_ID } from '../services/sessionCreationService.js';
 import { getIo } from '../sockets/index.js';
 
 export const pokerSessionRouter = Router();
 
 const inviteLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10 });
+// Custom join codes are guessable, so make probing them for existing sessions slow.
+const joinLookupLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30 });
 
 async function loadOwnedSession(sessionId: string, facilitatorId: string) {
   const session = await pokerSessionRepo.findById(sessionId);
@@ -27,7 +30,7 @@ pokerSessionRouter.get('/', requireAuth, async (req, res) => {
   res.json({ sessions });
 });
 
-pokerSessionRouter.get('/by-join-code/:joinCode', async (req, res) => {
+pokerSessionRouter.get('/by-join-code/:joinCode', joinLookupLimiter, async (req, res) => {
   const session = await pokerSessionRepo.findByJoinCode(req.params.joinCode.toUpperCase());
   if (!session) {
     res.status(404).json({ error: { code: 'not_found', message: 'No session with that code' } });
@@ -44,7 +47,7 @@ pokerSessionRouter.get('/by-join-code/:joinCode', async (req, res) => {
 });
 
 pokerSessionRouter.post('/', requireAuth, async (req, res) => {
-  const { name, deckId } = req.body ?? {};
+  const { name, deckId, joinCode } = req.body ?? {};
   if (typeof name !== 'string' || !name.trim() || typeof deckId !== 'string') {
     res.status(400).json({ error: { code: 'invalid_input', message: 'Name and deckId are required' } });
     return;
@@ -54,7 +57,30 @@ pokerSessionRouter.post('/', requireAuth, async (req, res) => {
     res.status(400).json({ error: { code: 'invalid_deck', message: 'Unknown deck' } });
     return;
   }
-  const session = await pokerSessionRepo.createSession(req.user!.id, name.trim(), deckId);
+  const session = await createSession({ facilitatorId: req.user!.id, name: name.trim(), deckId, joinCode });
+  res.status(201).json({ session });
+});
+
+// A one-round, one-topic session that is ready to play immediately.
+pokerSessionRouter.post('/quick-hand', requireAuth, async (req, res) => {
+  const { name, deckId, joinCode } = req.body ?? {};
+  if (typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: { code: 'invalid_input', message: 'Name is required' } });
+    return;
+  }
+  const chosenDeckId = typeof deckId === 'string' && deckId ? deckId : DEFAULT_DECK_ID;
+  const deck = await cardDeckRepo.findDeckById(chosenDeckId);
+  if (!deck) {
+    res.status(400).json({ error: { code: 'invalid_deck', message: 'Unknown deck' } });
+    return;
+  }
+  const session = await createSession({
+    facilitatorId: req.user!.id,
+    name: name.trim().slice(0, 150),
+    deckId: chosenDeckId,
+    joinCode,
+    isQuickHand: true,
+  });
   res.status(201).json({ session });
 });
 

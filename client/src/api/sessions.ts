@@ -7,6 +7,7 @@ export interface PokerSession {
   join_code: string;
   deck_id: string;
   status: 'draft' | 'active' | 'completed';
+  is_quick_hand: number | boolean;
   active_topic_id: string | null;
   completed_at: string | null;
   purge_at: string | null;
@@ -38,7 +39,14 @@ export const sessionApi = {
     api.get<{ session: { id: string; name: string; joinCode: string; status: string } }>(
       `/poker-sessions/by-join-code/${joinCode}`,
     ),
-  create: (name: string, deckId: string) => api.post<{ session: PokerSession }>('/poker-sessions', { name, deckId }),
+  create: (name: string, deckId: string, joinCode?: string) =>
+    api.post<{ session: PokerSession }>('/poker-sessions', { name, deckId, joinCode: joinCode || undefined }),
+  createQuickHand: (name: string, opts: { deckId?: string; joinCode?: string } = {}) =>
+    api.post<{ session: PokerSession }>('/poker-sessions/quick-hand', {
+      name,
+      deckId: opts.deckId || undefined,
+      joinCode: opts.joinCode || undefined,
+    }),
   update: (id: string, fields: { name?: string; deckId?: string }) =>
     api.patch<{ ok: true }>(`/poker-sessions/${id}`, fields),
   invite: (id: string, emails: string[]) =>

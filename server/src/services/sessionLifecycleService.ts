@@ -11,3 +11,9 @@ export async function completeSession(io: AppServer, sessionId: string): Promise
   });
   return updated;
 }
+
+export async function reopenSession(io: AppServer, sessionId: string): Promise<PokerSessionRow> {
+  const updated = await pokerSessionRepo.markReopened(sessionId);
+  io.to(sessionRoom(sessionId)).emit(ServerEvents.SessionReopened, {});
+  return updated;
+}

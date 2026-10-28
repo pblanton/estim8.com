@@ -7,6 +7,7 @@ import { SetPasswordPage } from './pages/auth/SetPassword';
 import { LoginPage } from './pages/auth/Login';
 import { FacilitatorDashboard } from './pages/dashboard/FacilitatorDashboard';
 import { SessionCreatePage } from './pages/session/SessionCreate';
+import { QuickHandPage } from './pages/session/QuickHand';
 import { SessionEditPage } from './pages/session/SessionEdit';
 import { TopicEditorPage } from './pages/topic/TopicEditor';
 import { JoinLandingPage } from './pages/join/JoinLanding';
@@ -34,6 +35,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <SessionCreatePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sessions/quick-hand"
+        element={
+          <ProtectedRoute>
+            <QuickHandPage />
           </ProtectedRoute>
         }
       />
