@@ -131,11 +131,13 @@ HTTPS, so nginx/certbot are not used.
    SMTP_SECURE=true
    SMTP_USER=noreply@estim8.com
    SMTP_PASSWORD=...
-   SMTP_FROM="estim8 <noreply@estim8.com>"
+   SMTP_FROM=estim8 <noreply@estim8.com>
    UPLOAD_ROOT=/app/uploads
    MAX_UPLOAD_MB=20
    ```
-   `SMTP_FROM`'s address must match `SMTP_USER`'s mailbox or Hostinger rejects the mail.
+   `SMTP_FROM`'s address must match `SMTP_USER`'s mailbox or Hostinger rejects the mail. Don't wrap
+   values in quotes in EasyPanel's environment editor (unlike a `.env` file, it may keep them
+   literally, which breaks the From address and stops emails from sending).
 4. **Volume**: add a persistent volume mounted at `/app/uploads` (topic files and generated
    `Results.md` files). Without it, uploads are lost on every redeploy.
 5. **Domain**: App → Domains → add `estim8.com` (and `www`), proxy port `4000`, HTTPS on.
